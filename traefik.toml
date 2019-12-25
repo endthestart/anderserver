@@ -1,0 +1,56 @@
+debug = false
+
+logLevel = "WARN"
+# enable this for things like unifi controller
+InsecureSkipVerify = true
+
+
+# allow ingress traefik on port 80 and 443
+# redirect traefik from port 80 to 443
+defaultEntryPoints = ["https","http"]
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+
+# retry request when network errors appear; default 3 times
+[retry]
+
+# enable traefik dashboard on port 8080
+[api]
+
+#[file]
+#  watch = true
+#  filename = "rules.toml"
+
+# enable traefik to discover new containers by their traefik-labels on docker
+# host
+
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+domain = "cimredna.com"
+watch = true
+expostedByDefault = false
+
+# enable the acme to issue letsencrypt ssl certificates
+[acme]
+email = "andermic@gmail.com"
+storage = "acme.json"
+entryPoint = "https"
+acmeLogging = true
+onDemand = false
+#onHostRule = true
+#[acme.httpChallenge]
+#entryPoint = "http"
+[acme.dnsChallenge]
+  provider = "cloudflare"
+  delayBeforeCheck = 300
+[[acme.domains]]
+  main = "cimredna.com"
+[[acme.domains]]
+  main = "*.cimredna.com"
