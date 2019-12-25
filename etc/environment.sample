@@ -1,0 +1,11 @@
+PUID=1000
+PGID=1002
+TZ="America/Chicago"
+USERDIR="/home/username"
+DOMAINNAME=mydomain.com
+HTTP_USERNAME=username
+HTTP_PASSWORD=password
+CLOUDFLARE_EMAIL=email@mydomain.com
+CLOUDFLARE_API_KEY=apikey
+MINIO_ACCESS_KEY=accesskey
+MINIO_SECRET_KEY=secretkey
