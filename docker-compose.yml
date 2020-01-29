@@ -188,6 +188,7 @@ services:
     volumes:
       - ./transmission/config:/config
       - /mnt/media:/mnt/media
+      - /mnt/media02:/mnt/media02
       - /mnt/data:/mnt/data
       - /mnt/ext01/torrents:/downloads
     ports:
@@ -213,6 +214,41 @@ services:
       - "traefik.frontend.headers.STSPreload=true"
       - "traefik.frontend.headers.frameDeny=true"
       - "traefik.frontend.auth.basic.users=${HTTP_USERNAME}:${HTTP_PASSWORD}"
+  rutorrent:
+    container_name: rutorrent
+    image: linuxserver/rutorrent
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./rutorrent/config:/config
+      - /mnt/media:/mnt/media
+      - /mnt/data:/mnt/data
+      - /mnt/ext01/torrents:/downloads
+    ports:
+      - 5000:5000
+      - 51213:51213
+      - 6881:6881/udp
+    networks:
+      - traefik_proxy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=rutorrent"
+      - "traefik.frontend.rule=Host:rutorrent.${DOMAINNAME}"
+      - "traefik.port=80"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.SSLHost=${DOMAINNAME}"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.headers.frameDeny=true"
+      - "traefik.frontend.auth.basic.users=${HTTP_USERNAME}:${HTTP_PASSWORD}"
   sabnzbd:
     image: linuxserver/sabnzbd
     container_name: sabnzbd
@@ -224,6 +260,7 @@ services:
       - ./sabnzbd/config:/config
       - /mnt/data:/mnt/data
       - /mnt/media:/mnt/media
+      - /mnt/media02:/mnt/media02
       - /mnt/data/sabnzbd/complete:/downloads
       - /mnt/data/sabnzbd/incomplete:/incomplete-downloads
     restart: unless-stopped
@@ -334,6 +371,37 @@ services:
       - "traefik.backend=sonarr"
       - "traefik.frontend.rule=Host:sonarr.${DOMAINNAME}"
       - "traefik.port=8989"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.SSLHost=${DOMAINNAME}"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.headers.frameDeny=true"
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: lidarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./lidarr/config:/config
+      - /mnt/music:/mnt/music
+      - /mnt/data:/mnt/data
+    ports:
+      - 8686:8686
+    restart: unless-stopped
+    networks:
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=lidarr"
+      - "traefik.frontend.rule=Host:lidarr.${DOMAINNAME}"
+      - "traefik.port=8686"
       - "traefik.docker.network=traefik_proxy"
       - "traefik.frontend.headers.SSLRedirect=true"
       - "traefik.frontend.headers.STSSeconds=315360000"
@@ -582,8 +650,9 @@ services:
     volumes:
       - ./beets/config:/config
       - /mnt/music:/mnt/music
-      - /mnt/music:/music
+      - /mnt/music/Library/Albums:/music
       - ./beets/downloads:/downloads
+      - /mnt/data:/mnt/data
     networks:
       - traefik_proxy
     restart: unless-stopped
