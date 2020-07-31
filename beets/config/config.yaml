@@ -8,7 +8,7 @@ per_disc_numbering: no
 # files/directories matching one of these patterns are ignored during import
 ignore: [".*", "*~", "System Volume Information"]
 # files matching these patterns are deleted from source after import
-clutter: ["Thumbs.DB", ".DS_Store", "*.m3u", ".pls", "*.jpg"]
+clutter: ["Thumbs.DB", ".DS_Store", "*.m3u", ".pls", "*.jpg", "*.sfv", "albumart"]
 
 convert:
     auto: no
@@ -64,6 +64,12 @@ scrub:
     auto: yes
 
 replace:
+    '[\\/]': _
+    '^\.': _
+    '\.$': _
+    '\s+$': ''
+    '^\s+': ''
+    '^-': _ 
     '^\.': _
     '[\x00-\x1f]': _
     '[<>:"\?\*\|]': _
@@ -77,4 +83,3 @@ replace:
 web:
     host: 0.0.0.0
     port: 8337
-

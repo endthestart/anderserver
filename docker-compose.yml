@@ -34,6 +34,13 @@ services:
       - ./traefik.toml:/traefik.toml
       - ./acme.json:/acme.json
     container_name: traefik
+  cloudflare-ddns:
+    image: oznu/cloudflare-ddns
+    environment:
+      - API_KEY=${CLOUDFLARE_API_KEY}
+      - EMAIL=${CLOUDFLARE_EMAIL}
+      - ZONE=${DOMAINNAME}
+    restart: unless-stopped
   portainer:
     image: portainer/portainer
     container_name: portainer
@@ -78,36 +85,6 @@ services:
       - /mnt/media:/mnt/media
       - /mnt/media02:/mnt/media02
       - /mnt/music:/mnt/music
-  jellyfin:
-    image: linuxserver/jellyfin
-    container_name: jellyfin
-    restart: unless-stopped
-    environment:
-      - TZ=${TZ}
-      - PGID=${PGID}
-      - PUID=${PUID}
-    volumes:
-      - ./jellyfin/config:/config
-      - /mnt/ext01/plex/transcode:/transcode
-      - /mnt/media:/mnt/media
-      - /mnt/music:/mnt/music
-    networks:
-      - traefik_proxy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.backend=jellyfin"
-      - "traefik.frontend.rule=Host:jellyfin.${DOMAINNAME}"
-      - "traefik.port=8096"
-      - "traefik.docker.network=traefik_proxy"
-      - "traefik.frontend.headers.SSLRedirect=true"
-      - "traefik.frontend.headers.STSSeconds=315360000"
-      - "traefik.frontend.headers.browserXSSFilter=true"
-      - "traefik.frontend.headers.contentTypeNosniff=true"
-      - "traefik.frontend.headers.forceSTSHeader=true"
-      - "traefik.frontend.headers.SSLHost=${DOMAINNAME}"
-      - "traefik.frontend.headers.STSIncludeSubdomains=true"
-      - "traefik.frontend.headers.STSPreload=true"
-      - "traefik.frontend.headers.frameDeny=true"
   nextcloud:
     container_name: nextcloud
     restart: unless-stopped
@@ -190,7 +167,7 @@ services:
       - /mnt/media:/mnt/media
       - /mnt/media02:/mnt/media02
       - /mnt/data:/mnt/data
-      - /mnt/ext01/torrents:/downloads
+      - /mnt/media/data/torrents:/downloads
     ports:
       - 9091:9091
       - 51413:51413
@@ -203,41 +180,6 @@ services:
       - "traefik.backend=transmission"
       - "traefik.frontend.rule=Host:transmission.${DOMAINNAME}"
       - "traefik.port=9091"
-      - "traefik.docker.network=traefik_proxy"
-      - "traefik.frontend.headers.SSLRedirect=true"
-      - "traefik.frontend.headers.STSSeconds=315360000"
-      - "traefik.frontend.headers.browserXSSFilter=true"
-      - "traefik.frontend.headers.contentTypeNosniff=true"
-      - "traefik.frontend.headers.forceSTSHeader=true"
-      - "traefik.frontend.headers.SSLHost=${DOMAINNAME}"
-      - "traefik.frontend.headers.STSIncludeSubdomains=true"
-      - "traefik.frontend.headers.STSPreload=true"
-      - "traefik.frontend.headers.frameDeny=true"
-      - "traefik.frontend.auth.basic.users=${HTTP_USERNAME}:${HTTP_PASSWORD}"
-  rutorrent:
-    container_name: rutorrent
-    image: linuxserver/rutorrent
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - ./rutorrent/config:/config
-      - /mnt/media:/mnt/media
-      - /mnt/data:/mnt/data
-      - /mnt/ext01/torrents:/downloads
-    ports:
-      - 5000:5000
-      - 51213:51213
-      - 6881:6881/udp
-    networks:
-      - traefik_proxy
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.backend=rutorrent"
-      - "traefik.frontend.rule=Host:rutorrent.${DOMAINNAME}"
-      - "traefik.port=80"
       - "traefik.docker.network=traefik_proxy"
       - "traefik.frontend.headers.SSLRedirect=true"
       - "traefik.frontend.headers.STSSeconds=315360000"
@@ -565,81 +507,6 @@ services:
      - "traefik.frontend.headers.STSPreload=true"
      - "traefik.frontend.headers.frameDeny=true" 
      - "traefik.frontend.auth.basic.users=${HTTP_USERNAME}:${HTTP_PASSWORD}"
-  odoo:
-    image: odoo
-    container_name: odoo
-    depends_on:
-      - odoo-db
-    environment:
-      - USER=odoo
-      - PASSWORD=odoo
-      - HOST=odoo-db
-    volumes:
-      - ./odoo/config:/etc/odoo
-    restart: unless-stopped
-    networks:
-      - traefik_proxy
-    labels:
-     - "traefik.enable=true"
-     - "traefik.backend=odoo"
-     - "traefik.frontend.rule=Host:odoo.${DOMAINNAME}"
-     - "traefik.port=8069"
-     - "traefik.docker.network=traefik_proxy"
-     - "traefik.frontend.headers.SSLRedirect=true"
-     - "traefik.frontend.headers.STSSeconds=315360000"
-     - "traefik.frontend.headers.browserXSSFilter=true"
-     - "traefik.frontend.headers.contentTypeNosniff=true"
-     - "traefik.frontend.headers.forceSTSHeader=true"
-     - "traefik.frontend.headers.SSLHost=${DOMAINNAME}"
-     - "traefik.frontend.headers.STSIncludeSubdomains=true"
-     - "traefik.frontend.headers.STSPreload=true"
-     - "traefik.frontend.headers.frameDeny=true" 
-  odoo-db:
-    image: postgres
-    container_name: odoo-db
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=odoo
-      - POSTGRES_USER=odoo
-    networks:
-      - traefik_proxy
-    volumes:
-      - odoo_db:/var/lib/postgresql/data
-  firefly:
-    image: jc5x/firefly-iii
-    depends_on:
-      - firefly_db
-    networks:
-      - traefik_proxy
-    env_file: ./firefly/.env
-    volumes:
-      - ./firefly/export:/var/www/firefly-iii/storage/export
-      - ./firefly/upload:/var/www/firefly-iii/storage/upload
-    restart: unless-stopped
-    labels:
-     - "traefik.enable=true"
-     - "traefik.backend=firefly"
-     - "traefik.frontend.rule=Host:firefly.${DOMAINNAME}"
-     - "traefik.port=80"
-     - "traefik.docker.network=traefik_proxy"
-     - "traefik.frontend.headers.SSLRedirect=true"
-     - "traefik.frontend.headers.STSSeconds=315360000"
-     - "traefik.frontend.headers.browserXSSFilter=true"
-     - "traefik.frontend.headers.contentTypeNosniff=true"
-     - "traefik.frontend.headers.forceSTSHeader=true"
-     - "traefik.frontend.headers.SSLHost=${DOMAINNAME}"
-     - "traefik.frontend.headers.STSIncludeSubdomains=true"
-     - "traefik.frontend.headers.STSPreload=true"
-     - "traefik.frontend.headers.frameDeny=true" 
-  firefly_db:
-    image: postgres:10
-    environment:
-      - POSTGRES_PASSWORD=firefly
-      - POSTGRES_USER=firefly
-    networks:
-      - traefik_proxy
-    volumes:
-      - firefly_db:/var/lib/postgresql/data
   beets:
     image: linuxserver/beets
     container_name: beets
@@ -672,33 +539,6 @@ services:
      - "traefik.frontend.headers.STSPreload=true"
      - "traefik.frontend.headers.frameDeny=true" 
      - "traefik.frontend.auth.basic.users=${HTTP_USERNAME}:${HTTP_PASSWORD}"
-  zenphoto:
-    image: linuxserver/nginx
-    container_name: zenphoto
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - ./zenphoto/config:/config
-    restart: unless-stopped
-    networks:
-      - traefik_proxy
-    labels:
-     - "traefik.enable=true"
-     - "traefik.backend=zenphoto"
-     - "traefik.frontend.rule=Host:zenphoto.${DOMAINNAME}"
-     - "traefik.port=80"
-     - "traefik.docker.network=traefik_proxy"
-     - "traefik.frontend.headers.SSLRedirect=true"
-     - "traefik.frontend.headers.STSSeconds=315360000"
-     - "traefik.frontend.headers.browserXSSFilter=true"
-     - "traefik.frontend.headers.contentTypeNosniff=true"
-     - "traefik.frontend.headers.forceSTSHeader=true"
-     - "traefik.frontend.headers.SSLHost=${DOMAINNAME}"
-     - "traefik.frontend.headers.STSIncludeSubdomains=true"
-     - "traefik.frontend.headers.STSPreload=true"
-     - "traefik.frontend.headers.frameDeny=true" 
   freshrss:
     image: linuxserver/freshrss
     container_name: freshrss
@@ -740,45 +580,6 @@ services:
       - traefik_proxy
     volumes:
       - freshrss_db:/var/lib/mysql
-  piwigo:
-    image: linuxserver/piwigo
-    container_name: piwigo
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - ./piwigo/config:/config
-    restart: unless-stopped
-    networks:
-      - traefik_proxy
-    labels:
-     - "traefik.enable=true"
-     - "traefik.backend=piwigo"
-     - "traefik.frontend.rule=Host:piwigo.${DOMAINNAME}"
-     - "traefik.port=80"
-     - "traefik.docker.network=traefik_proxy"
-     - "traefik.frontend.headers.SSLRedirect=true"
-     - "traefik.frontend.headers.STSSeconds=315360000"
-     - "traefik.frontend.headers.browserXSSFilter=true"
-     - "traefik.frontend.headers.contentTypeNosniff=true"
-     - "traefik.frontend.headers.forceSTSHeader=true"
-     - "traefik.frontend.headers.SSLHost=${DOMAINNAME}"
-     - "traefik.frontend.headers.STSIncludeSubdomains=true"
-     - "traefik.frontend.headers.STSPreload=true"
-     - "traefik.frontend.headers.frameDeny=true" 
-  piwigo-db:
-    image: mariadb
-    container_name: piwigo-db
-    environment:
-      - MYSQL_ROOT_PASSWORD=piwigo
-      - MYSQL_PASSWORD=piwigo
-      - MYSQL_USER=piwigo
-      - MYSQL_DATABASE=piwigo
-    networks:
-      - traefik_proxy
-    volumes:
-      - piwigo_db:/var/lib/mysql
   thelounge:
     image: linuxserver/thelounge
     container_name: thelounge
@@ -805,18 +606,6 @@ services:
      - "traefik.frontend.headers.SSLHost=${DOMAINNAME}"
      - "traefik.frontend.headers.STSIncludeSubdomains=true"
      - "traefik.frontend.headers.STSPreload=true"
-  minecraft:
-    image: itzg/minecraft-bedrock-server
-    container_name: minecraft
-    environment:
-      - UID=${PUID}
-      - GID=${PGID}
-      - EULA=TRUE
-    ports:
-      - 19132:19132/udp
-    volumes:
-      - /mnt/ext01/minecraft/data:/data
-    restart: unless-stopped
 networks:
   traefik_proxy:
     external:
@@ -824,8 +613,5 @@ networks:
   default:
     driver: bridge
 volumes:
-  firefly_db: ~
   nextcloud_db: ~
-  odoo_db: ~
-  piwigo_db: ~
   freshrss_db: ~
